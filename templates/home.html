@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revision App</title>
+    <link href="../static/style.css" rel="stylesheet">
+</head>
+<body>
+    <span><h1>Welcome to the Revision App</h1></span>
+    <div class="head-banner">
+        <table>
+            <tr>
+                <td><a href="#"><button type="button" disabled>Home Page</button></a></td>
+                <td><a href="add-topics.html"><button type="button">Add Topics</button></a></td>
+                <td><a href="stats.html"><button type="button">View Stats</button></a></td>
+            </tr>
+        </table> 
+        <hr>       
+    </div>
+    <div class="main-content">
+        <div class="form">
+            <h3 style="text-align: center;">Today's Schedule</h3>
+        </div>
+        <div id="topic-area">
+            <table>
+                <thead>
+                    <th style="width: 5%;">S.No.</th>
+                    <th style="width: 15%;">Subject</th>
+                    <th style="width: 40%;">Topics</th>
+                    <th style="width: 10%;">Times Revised</th>
+                    <th style="width: 20%;">Pending On</th>
+                    <th style="width: 10%;">Action</th>
+                </thead>
+                <tbody>                    
+                    {% if data["today-tbd"] or data["today-tbd"]|length %}
+                    {% for subject, topic, times_done, todo in data["today-tbd"] %}
+                    <tr>
+                        <td  style="width: 5%;">{{ loop.index }}</td>
+                        <td  style="width: 15%;">{{ subject }}</td>
+                        <td  style="width: 40%;">{{ topic }}</td>
+                        <td  style="width: 10%;">{{ times_done }}</td>
+                        <td  style="width: 20%;">{{ todo }}</td>
+                        <td  style="width: 10%;">
+                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('done','{{ topic }}')">
+                                <span style="color: green;">Done</span>
+                            </button>
+                        </td>
+                    </tr>                    
+                    {% endfor %}
+                    {% else %}
+                    <tr><td colspan="100%"><h3>Nothing for Today</h3></td></tr>
+                    {% endif %}
+                    
+                    <tr><th colspan="100%"> Done Topics</th></tr>
+                    {% if data["today-done"] or data["today-done"]|length %}
+                    {% for subject, topic, times_done, todo in data["today-done"] %}
+                    <tr>
+                        <td  style="width: 5%;"><span style="color: green;">{{ loop.index + (data["today-tbd"]|length if data["today-tbd"] else 0) }}</span></td>
+                        <td  style="width: 15%;"><span style="color: green;">{{ subject }}</span></td>
+                        <td  style="width: 40%;"><span style="color: green;">{{ topic }}</span></td>
+                        <td  style="width: 10%;"><span style="color: green;">{{ times_done }}</span></td>
+                        <td  style="width: 20%;"><span style="color: green;">{{ todo }}</span></td>
+                        <td  style="width: 10%;">
+                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('undo','{{ topic }}')">
+                                <span style="color: red;">Not Done</span>
+                            </button>
+                        </td>
+                    </tr>                    
+                    {% endfor %}
+                    {% else %}
+                    <tr><td colspan="100%"><h3>Nothing Done !!!</h3></td></tr>
+                    {% endif %}             
+                </tbody>
+            </table>                        
+
+
+        </div>
+    </div>
+    <script src="../static/script.js"></script>
+</body>
+</html>

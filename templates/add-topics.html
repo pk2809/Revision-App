@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Topics</title>
+    <link href="../static/style.css" rel="stylesheet">
+</head>
+<body>
+    <span><h2>Add the Subject and Topics for Today</h2></span>
+    <div class="head-banner">
+        <table>
+            <tr>
+                <td><a href="home.html"><button type="button">Home Page</button></a></td>
+                <td><a href="#"><button type="button" disabled>Add Topics</button></a></td>
+                <td><a href="stats.html"><button type="button">View Stats</button></a></td>
+            </tr>
+        </table> 
+        <hr>       
+    </div>
+    <div class="main-content">
+        <div class="form" style="margin: 3em 30em 0em 30em; border: 1px dotted;">
+            <table>
+                <tr>
+                    <td>Subject:</td>
+                    <td><input type="text" name="subject" id="subject-name" placeholder="subject name" style="width: 20em; height: 2em;"></td>
+                </tr>
+                <tr>
+                    <td>Topics:</td>
+                    <td><textarea name="Topics" id="topic-names" cols="30" rows="10" placeholder="topic1&NewLine;topic2&NewLine;topic3&NewLine;..." style="width: 20em; height: 20em;"></textarea></td>
+                </tr>                                                    
+            </table>
+            <div style="text-align: center; margin: 3em;">
+                <button type="submit" id="submit-topics" style="height: 3em; width: 5em;" onclick="addTopic()"> Submit </button>
+            </div>
+        </div>
+    </div>    
+    <script src="../static/script.js"></script>
+</body>
+</html>
