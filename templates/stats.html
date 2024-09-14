@@ -25,7 +25,7 @@
                 <h3>No Stats to show</h3>
                 {% else %}
                 {% for subs, topics in data.items() %}
-                <li class="items" style="margin: 2em;"><span class="caret " style="font-weight: 900;">{{ subs }} </span> &ThickSpace; % done: <span class="sub-progress">{{ topics[-1] }}</span>
+                <li class="items" style="margin-top: 2em;"><span class="caret " style="font-weight: 900;">{{ subs }} </span> &ThickSpace; % done: <span class="sub-progress">{{ topics[-1] }}</span>
                     <ul class="nested">
                         {% for topic in topics[:-1] %}
                         <li class="items"><span class="caret ">{{ topic[0] }}</span>

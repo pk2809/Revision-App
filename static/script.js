@@ -42,7 +42,12 @@ function addTopic() {
                 console.log("Added the Topic")
             }
         }
-        var today = new Date().toISOString().substring(0,10);
+        var today = new Date().toLocaleDateString();
+        var mdy = today.split('/');
+        var month = parseInt(mdy[0]);
+        var day = parseInt(mdy[1]);
+        var year = parseInt(mdy[2]);
+        today = year + "-" + month + "-" + day;
         var json  = new Object();
         json["topics"] = new Object();        
         topics.forEach(t => {            

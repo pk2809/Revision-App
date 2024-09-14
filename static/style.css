@@ -61,7 +61,7 @@ thead{
 .stats-div{    
     width: 90%;
     height: 40em;
-    margin-left: 5%;
+    margin: auto;
     background-color: gainsboro;
     padding: 1em;
     border-radius: 2em;

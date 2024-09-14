@@ -6,8 +6,7 @@ page = Blueprint('page', __name__, template_folder="templates", static_folder="s
 
 @page.route('/stats.html', methods=['GET'])
 def stats():
-    try:
-         disp_date = "%d %B, %Y"
+    try:         
          with open('config.json', 'r') as file:                        
             config_data = json.load(file)
             subs = defaultdict(lambda: [])            
@@ -99,10 +98,10 @@ def home():
     response = {tbd:[], tdn:[]} 
     if tbd in config_data:
         for x, y in config_data[tbd].items():
-            response[tbd].append((y['subject'],x, y[timesDone], y[to_do]))    
+            response[tbd].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))    
     if tdn in config_data:
         for x, y in config_data[tdn].items():
-            response[tdn].append((y['subject'],x, y[timesDone], y[to_do]))
+            response[tdn].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))
     
     response[tbd].sort()
     response[tdn].sort()
@@ -116,10 +115,11 @@ tdn = "today-done"
 topics = "topics"
 to_do = "todo"
 timesDone = "timesDone"
+disp_date = "%d %B, %Y"
 
 def recalc(d, nextDay):
     today= datetime.datetime.today()
-    td, dn={}, {}
+    td={}
     for x, y in d[topics].items():
         pdate=datetime.datetime.strptime(y[to_do],date_fmt)
         if pdate<=today and x not in d[tdn]:
