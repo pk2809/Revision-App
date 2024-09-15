@@ -1,35 +1,36 @@
 from flask import render_template, Blueprint, request, redirect
 from collections import defaultdict
 import datetime
+from zoneinfo import ZoneInfo as zi
 import json
 page = Blueprint('page', __name__, template_folder="templates", static_folder="static")
 
 @page.route('/stats.html', methods=['GET'])
 def stats():
-    try:         
-         with open('config.json', 'r') as file:                        
+    try:
+         with open('config.json', 'r') as file:
             config_data = json.load(file)
-            subs = defaultdict(lambda: [])            
+            subs = defaultdict(lambda: [])
 
             today_done= {}
-            if tdn in config_data:                
+            if tdn in config_data:
                 for x,y in config_data[tdn].items():
                     today_done[x]=y
 
-            if topics in config_data:                
-                for x, y in config_data[topics].items():                    
-                    subs[y['subject']].append((x, 
-                                               datetime.datetime.strftime(datetime.datetime.strptime(today_done[x][to_do] if x in today_done else y[to_do],date_fmt), disp_date), 
-                                               y[timesDone] + (x in today_done)))                    
+            if topics in config_data:
+                for x, y in config_data[topics].items():
+                    subs[y['subject']].append((x,
+                                               datetime.datetime.strftime(datetime.datetime.strptime(today_done[x][to_do] if x in today_done else y[to_do],date_fmt), disp_date),
+                                               y[timesDone] + (x in today_done)))
             else:
-                raise Exception('Topics Not Found')            
+                raise Exception('Topics Not Found')
             for x in subs:
-                subs[x].sort(key=lambda a: a[2])                                                                
-                n=len(list(filter(lambda a: datetime.datetime.strptime(a[1],disp_date)>datetime.datetime.today(), subs[x])))                
-                d=len(subs[x])                
-                subs[x].append(n*100/d if d else "NA")                
-    except: 
-        subs = None    
+                subs[x].sort(key=lambda a: a[2])
+                n=len(list(filter(lambda a: datetime.datetime.strptime(a[1],disp_date).astimezone(zi("Asia/Kolkata")).date()>datetime.datetime.today().astimezone(zi("Asia/Kolkata")).date(), subs[x])))
+                d=len(subs[x])
+                subs[x].append(n*100/d if d else "NA")
+    except:
+        subs = None
     return render_template('stats.html', data=subs)
 
 
@@ -38,40 +39,43 @@ def todo():
     if request.method == 'POST':
         data = request.get_json()  # Get data from request in JSON format
         try:
-            with open('config.json', 'r') as file:            
+            with open('config.json', 'r') as file:
                 config_data = json.load(file)
-                config_data['topics'].update(data['topics'])  # Update the value of the JSON data
+                if topics in config_data:
+                    config_data[topics].update(data[topics])  # Update the value of the JSON data
+                else:
+                    config_data[topics] = data[topics]
         except:
-            config_data = data
-        with open('config.json', 'w+') as file:                                        
-            json.dump(config_data, file)  # Save updated data to file in JSON format  
-    return render_template('add-topics.html')    
+            pass
+        with open('config.json', 'w+') as file:
+            json.dump(config_data, file)  # Save updated data to file in JSON format
+    return render_template('add-topics.html')
 
 
 @page.route('/<action>/<topic>', methods=['GET'])
 def done(action, topic):
-    try:        
-        with open('config.json', 'r') as file:                        
+    try:
+        with open('config.json', 'r') as file:
             config_data = json.load(file)
         if tdn not in config_data: config_data[tdn] = {}
         if tbd not in config_data: config_data[tbd] = {}
         if action == "done":
             nd = (1<<config_data[tbd][topic][timesDone]) * 7 - 1
-            config_data[tbd][topic][to_do] = (datetime.datetime.today()+datetime.timedelta(days=nd)).strftime(date_fmt)
-            config_data[tbd][topic][timesDone]+=1            
+            config_data[tbd][topic][to_do] = (datetime.datetime.today().astimezone(zi("Asia/Kolkata"))+datetime.timedelta(days=nd)).strftime(date_fmt)
+            config_data[tbd][topic][timesDone]+=1
             config_data[tdn][topic]=config_data[tbd][topic]
-            config_data[tbd].pop(topic)      
+            config_data[tbd].pop(topic)
         elif action == "undo":
             config_data[tdn][topic][timesDone]-=1
             pd = (1<<config_data[tdn][topic][timesDone]) * 7 - 1
-            config_data[tdn][topic][to_do] = (datetime.datetime.today()+datetime.timedelta(days=pd)).strftime(date_fmt)
+            config_data[tdn][topic][to_do] = (datetime.datetime.today().astimezone(zi("Asia/Kolkata"))+datetime.timedelta(days=pd)).strftime(date_fmt)
             config_data[tbd][topic]=config_data[tdn][topic]
-            config_data[tdn].pop(topic) 
+            config_data[tdn].pop(topic)
         else:
             print("Wrong Action")
     except: pass
 
-    with open('config.json', 'w+') as file:        
+    with open('config.json', 'w+') as file:
         json.dump(config_data, file)  # Save updated data to file in JSON format
     return redirect('/home.html')
 
@@ -79,9 +83,10 @@ def done(action, topic):
 @page.route('/')
 @page.route('/home.html')
 def home():
-    today = datetime.datetime.today().strftime(date_fmt)
+    today = datetime.datetime.today().astimezone(zi("Asia/Kolkata")).strftime(date_fmt)
     try:
-        with open('config.json', 'r') as file:                        
+        config_data = {}
+        with open('config.json', 'r') as file:
             config_data = json.load(file)
             nextDay=False
             if t not in config_data or config_data[t] != today:
@@ -90,22 +95,22 @@ def home():
                 if tdn not in config_data: config_data[tdn] = {}
                 nextDay=True
             recalc(config_data, nextDay)
-    except:            
-        config_data = {tbd:{}, t:""}
-    with open('config.json', 'w+') as file:        
-        json.dump(config_data, file)  # Save updated data to file in JSON format  
+    except:
+        config_data.update({tbd:{}, t:""})
+    with open('config.json', 'w+') as file:
+        json.dump(config_data, file)  # Save updated data to file in JSON format
 
-    response = {tbd:[], tdn:[]} 
+    response = {tbd:[], tdn:[]}
     if tbd in config_data:
         for x, y in config_data[tbd].items():
-            response[tbd].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))    
+            response[tbd].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))
     if tdn in config_data:
         for x, y in config_data[tdn].items():
             response[tdn].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))
-    
+
     response[tbd].sort()
     response[tdn].sort()
-    return render_template('home.html', data=response)    
+    return render_template('home.html', data=response)
 
 
 date_fmt = "%Y-%m-%d"
@@ -118,15 +123,16 @@ timesDone = "timesDone"
 disp_date = "%d %B, %Y"
 
 def recalc(d, nextDay):
-    today= datetime.datetime.today()
+    today= datetime.datetime.today().astimezone(zi("Asia/Kolkata")).date()
     td={}
     for x, y in d[topics].items():
-        pdate=datetime.datetime.strptime(y[to_do],date_fmt)
+        pdate=datetime.datetime.strptime(y[to_do],date_fmt).astimezone(zi("Asia/Kolkata")).date()
         if pdate<=today and x not in d[tdn]:
             td[x] = y
-        
+
     d[tbd].update(td)
-    if not nextDay: return     
+
+    if not nextDay: return
     d[topics].update(d[tdn])
     d[tdn].clear()
 
