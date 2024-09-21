@@ -6,32 +6,23 @@
     <title>Add Topics</title>
     <link href="../static/style.css" rel="stylesheet">
 </head>
-<body>
-    <span><h2>Add the Subject and Topics for Today</h2></span>
-    <div class="head-banner">
-        <table>
-            <tr>
-                <td><a href="home.html"><button type="button">Home Page</button></a></td>
-                <td><a href="#"><button type="button" disabled>Add Topics</button></a></td>
-                <td><a href="stats.html"><button type="button">View Stats</button></a></td>
-            </tr>
-        </table> 
-        <hr>       
-    </div>
+<body>    
+    <div class="head-banner"></div>    
     <div class="main-content">
-        <div class="form" style=" border: 1px dotted;">
+        <h2>Add the Subject and Topics for Today</h2>
+        <div class="form">
             <table>
                 <tr>
                     <td>Subject:</td>
-                    <td><input type="text" name="subject" id="subject-name" placeholder="subject name" style="width: 20em; height: 2em;"></td>
+                    <td><input type="text" name="subject" id="subject-name" placeholder="subject name" ></td>
                 </tr>
                 <tr>
                     <td>Topics:</td>
-                    <td><textarea name="Topics" id="topic-names" cols="30" rows="10" placeholder="topic1&NewLine;topic2&NewLine;topic3&NewLine;..." style="width: 20em; height: 20em;"></textarea></td>
+                    <td><textarea name="Topics" id="topic-names" cols="30" rows="10" placeholder="topic1&NewLine;topic2&NewLine;topic3&NewLine;..."></textarea></td>
                 </tr>                                                    
             </table>
-            <div style="text-align: center; margin: 3em;">
-                <button type="submit" id="submit-topics" style="height: 3em; width: 5em;" onclick="addTopic()"> Submit </button>
+            <div>
+                <button type="submit" id="submit-topics" onclick="addTopic()"> Submit </button>
             </div>
         </div>
     </div>    

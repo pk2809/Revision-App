@@ -1,0 +1,38 @@
+<div class="large">
+    <span class="menu-items"><a href="/">Home </a></span>
+    <span class="menu-items"><a href="/add-topics">Add topics </a></span>
+    <span class="menu-items"><a href="/stats">Statistics </a></span>
+    <span class="user-items">
+        {% if data and data["uname"]%}
+        Hi there, <span style="text-transform: capitalize;"> {{ data["uname"] }}!</span>
+        <span class="menu-items"><a href="/logout">Logout</a></span>
+        {% else %}        
+        <span class="menu-items"> <a href="/login">Login </a></span>
+        <span class="menu-items"> <a href="/register">Register </a></span>
+        {% endif%}
+    </span>    
+</div>
+<table class="small">
+    <tr>
+        <td colspan="2" id="ham" style="font-size: xx-large; color: rgb(23, 91, 93);">&#xFE3E</td>
+    </tr>
+    <tr>
+        <td class="menu-items nested"> <a href="/"> Home </a></td>
+        {% if data and data["uname"]%}        
+        <td class="menu-items nested"> Hi there, <span style="text-transform: capitalize;"> {{ data["uname"] }}!</span></td>
+        {% else %}
+        <td class="menu-items nested"> <a href="/login"> Login </a></td>        
+        {% endif%}
+    </tr>
+    <tr>
+        <td class="menu-items nested"> <a href="/add-topics"> Add topics </a></td>
+        {% if data and data["uname"]%}
+        <td class="menu-items nested"><a href="/logout">Logout</a></td>
+        {% else %}        
+        <td class="menu-items nested"> <a href="/register"> Register </a></td>
+        {% endif%}
+    </tr>
+    <tr>
+        <td class="menu-items nested"> <a href="/stats"> Statistics </a></td>
+    </tr>
+</table>

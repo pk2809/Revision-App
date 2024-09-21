@@ -7,27 +7,18 @@
     <link href="../static/style.css" rel="stylesheet">
 </head>
 <body>
-    <span><h2>Stats for your Revision</h2></span>
-    <div class="head-banner">
-        <table>
-            <tr>
-                <td><a href="home.html"><button type="button">Home Page</button></a></td>
-                <td><a href="add-topics.html"><button type="button">Add Topics</button></a></td>
-                <td><a href="#"><button type="button" disabled>View Stats</button></a></td>
-            </tr>
-        </table> 
-        <hr>       
-    </div>
+    <div class="head-banner"></div>    
     <div class="main-content">
+        <h2>Stats for your Revision</h2>
         <div class="stats-div">
             <ul class="node">
                 {% if not data %}
                 <h3>No Stats to show</h3>
                 {% else %}
                 {% for subs, topics in data.items() %}
-                <li class="items" style="margin-top: 2em;"><span class="caret " style="font-weight: 900;">{{ subs }} </span> &ThickSpace; % done: <span class="sub-progress">{{ topics[-1] }}</span>
+                <li class="items" style="margin-top: 2em;"><span class="caret " style="font-weight: 900;">{{ subs }} </span> &ThickSpace; % done: <span class="sub-progress">{{ ((topics[0]*100)/topics[1])|round(2) }}</span>
                     <ul class="nested">
-                        {% for topic in topics[:-1] %}
+                        {% for topic in topics[2:] %}
                         <li class="items"><span class="caret ">{{ topic[0] }}</span>
                             <ul class="nested">                            
                                 <li class="items"><b>Upcoming Revision Date: </b>{{ topic[1] }}</li>
