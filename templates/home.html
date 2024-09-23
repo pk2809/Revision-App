@@ -6,20 +6,11 @@
     <title>Revision App</title>
     <link href="../static/style.css" rel="stylesheet">
 </head>
-<body>
-    <span><h1>Welcome to the Revision App</h1></span>
-    <div class="head-banner">
-        <table>
-            <tr>
-                <td><a href="#"><button type="button" disabled>Home Page</button></a></td>
-                <td><a href="add-topics.html"><button type="button">Add Topics</button></a></td>
-                <td><a href="stats.html"><button type="button">View Stats</button></a></td>
-            </tr>
-        </table> 
-        <hr>       
-    </div>
+<body>    
+    <div class="head-banner"></div>    
     <div class="main-content">
-        <div class="form">
+        <h1>Welcome to the Revision App</h1>
+        <div>
             <h3 style="text-align: center;">Today's Schedule</h3>
         </div>
         <div id="topic-area">
@@ -33,8 +24,8 @@
                     <th style="width: 10%;">Action</th>
                 </thead>
                 <tbody>                    
-                    {% if data["today-tbd"] or data["today-tbd"]|length %}
-                    {% for subject, topic, times_done, todo in data["today-tbd"] %}
+                    {% if data and data["today-tbd"] and data["today-tbd"]|length %}
+                    {% for subject, topic, times_done, todo, id in data["today-tbd"] %}
                     <tr>
                         <td  style="width: 5%;">{{ loop.index }}</td>
                         <td  style="width: 15%;">{{ subject }}</td>
@@ -42,7 +33,7 @@
                         <td  style="width: 10%;">{{ times_done }}</td>
                         <td  style="width: 20%;">{{ todo }}</td>
                         <td  style="width: 10%;">
-                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('done','{{ topic }}')">
+                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('done','{{ id }}')">
                                 <span style="color: green;">Done</span>
                             </button>
                         </td>
@@ -53,8 +44,8 @@
                     {% endif %}
                     
                     <tr><th colspan="100%"> Done Topics</th></tr>
-                    {% if data["today-done"] or data["today-done"]|length %}
-                    {% for subject, topic, times_done, todo in data["today-done"] %}
+                    {% if data and data["today-done"] and data["today-done"]|length %}
+                    {% for subject, topic, times_done, todo, id in data["today-done"] %}
                     <tr>
                         <td  style="width: 5%;"><span style="color: green;">{{ loop.index + (data["today-tbd"]|length if data["today-tbd"] else 0) }}</span></td>
                         <td  style="width: 15%;"><span style="color: green;">{{ subject }}</span></td>
@@ -62,7 +53,7 @@
                         <td  style="width: 10%;"><span style="color: green;">{{ times_done }}</span></td>
                         <td  style="width: 20%;"><span style="color: green;">{{ todo }}</span></td>
                         <td  style="width: 10%;">
-                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('undo','{{ topic }}')">
+                            <button type="button" style="padding: .4em; background-color: azure;" onclick="doneTopic('undo','{{ id }}')">
                                 <span style="color: red;">Not Done</span>
                             </button>
                         </td>

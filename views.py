@@ -1,138 +1,251 @@
-from flask import render_template, Blueprint, request, redirect
-from collections import defaultdict
+from flask import render_template, Blueprint, request, redirect, session
+from mysql.connector.connection_cext import CMySQLConnection
+from hashlib import sha256
 import datetime
+from datetime import datetime as dt
 from zoneinfo import ZoneInfo as zi
-import json
-page = Blueprint('page', __name__, template_folder="templates", static_folder="static")
 
-@page.route('/stats.html', methods=['GET'])
-def stats():
-    try:
-         with open('config.json', 'r') as file:
-            config_data = json.load(file)
-            subs = defaultdict(lambda: [])
+def constructBlueprint(dbClient: CMySQLConnection):    
+    user_table_name = "users"
+    topic_table_name = "topics"
+    topic = "topic"
+    subject = "subject"
+    do_on = "do_on"
+    last_done = "last_done"
+    times_done = "times_done"
+    user = "user"
+    offset="t_offset"    
+    disp_date = "%d %B, %Y"
+    today_tbd = "today-tbd"
+    today_done = "today-done"
+    
+    page = Blueprint('page', __name__, template_folder="templates", static_folder="static" )        
 
-            today_done= {}
-            if tdn in config_data:
-                for x,y in config_data[tdn].items():
-                    today_done[x]=y
-
-            if topics in config_data:
-                for x, y in config_data[topics].items():
-                    subs[y['subject']].append((x,
-                                               datetime.datetime.strftime(datetime.datetime.strptime(today_done[x][to_do] if x in today_done else y[to_do],date_fmt), disp_date),
-                                               y[timesDone] + (x in today_done)))
-            else:
-                raise Exception('Topics Not Found')
-            for x in subs:
-                subs[x].sort(key=lambda a: a[2])
-                n=len(list(filter(lambda a: datetime.datetime.strptime(a[1],disp_date).astimezone(zi("Asia/Kolkata")).date()>datetime.datetime.today().astimezone(zi("Asia/Kolkata")).date(), subs[x])))
-                d=len(subs[x])
-                subs[x].append(n*100/d if d else "NA")
-    except:
-        subs = None
-    return render_template('stats.html', data=subs)
-
-
-@page.route('/add-topics.html',  methods=['GET', 'POST'])
-def todo():
-    if request.method == 'POST':
-        data = request.get_json()  # Get data from request in JSON format
-        try:
-            with open('config.json', 'r') as file:
-                config_data = json.load(file)
-                if topics in config_data:
-                    config_data[topics].update(data[topics])  # Update the value of the JSON data
+    @page.route('/login', methods = ["GET", "POST"])
+    def login():        
+        logged_user= session.get("uname")                
+        if logged_user:
+            return redirect("/")
+        elif request.method == "POST":
+            session.clear()
+            try:          
+                cur=dbClient.cursor()      
+                data = request.get_json()
+                t_offset = data.get(offset)                
+                logged_user = data["user"]
+                pwd = sha256(data["password"].encode()).hexdigest()                
+                cur.execute(f"select user from {user_table_name} where user =%s and password =%s", (logged_user, pwd))
+                ret = cur.fetchone()
+                if ret:
+                    cur.execute(f"update {user_table_name} set t_offset = %s where user =%s", (t_offset, logged_user))
+                    dbClient.commit()
+                    session["uname"] = logged_user
+                    return redirect("/")
                 else:
-                    config_data[topics] = data[topics]
-        except:
-            pass
-        with open('config.json', 'w+') as file:
-            json.dump(config_data, file)  # Save updated data to file in JSON format
-    return render_template('add-topics.html')
+                    return redirect("/login", code= 404)
+            except Exception as e:
+                print("Error Reading the Username or Password", e)
+            finally:
+                cur.close()
+        return render_template("login.html")
+    
+
+    
+    @page.route('/register', methods = ["GET", "POST"])
+    def register():
+        logged_user= session.get("uname")                
+        if logged_user:
+            return redirect("/")
+        elif request.method == "POST":
+            session.clear()
+            try:
+                cur=dbClient.cursor()
+                data = request.get_json()
+                uname = data[user]
+                pwd = sha256(data["password"].encode()).hexdigest()
+                cur.execute(f"select user from {user_table_name} where user =%s", (uname,))
+                ret = cur.fetchone()
+                if ret:                    
+                    return redirect("/register", code=409)
+                else:                    
+                    cur.execute(f"insert into {user_table_name}(user, password) values(%s,%s)", (uname, pwd))                    
+                    dbClient.commit()
+                    return redirect("/login")
+                
+            except Exception as e:
+                print("Error Reading the Username or Password", e)
+            finally:
+                cur.close()
+        return render_template("register.html", data = None)
+    
 
 
-@page.route('/<action>/<topic>', methods=['GET'])
-def done(action, topic):
-    try:
-        with open('config.json', 'r') as file:
-            config_data = json.load(file)
-        if tdn not in config_data: config_data[tdn] = {}
-        if tbd not in config_data: config_data[tbd] = {}
-        if action == "done":
-            nd = (1<<config_data[tbd][topic][timesDone]) * 7 - 1
-            config_data[tbd][topic][to_do] = (datetime.datetime.today().astimezone(zi("Asia/Kolkata"))+datetime.timedelta(days=nd)).strftime(date_fmt)
-            config_data[tbd][topic][timesDone]+=1
-            config_data[tdn][topic]=config_data[tbd][topic]
-            config_data[tbd].pop(topic)
-        elif action == "undo":
-            config_data[tdn][topic][timesDone]-=1
-            pd = (1<<config_data[tdn][topic][timesDone]) * 7 - 1
-            config_data[tdn][topic][to_do] = (datetime.datetime.today().astimezone(zi("Asia/Kolkata"))+datetime.timedelta(days=pd)).strftime(date_fmt)
-            config_data[tbd][topic]=config_data[tdn][topic]
-            config_data[tdn].pop(topic)
+    @page.route('/stats', methods=['GET'])
+    def stats():
+        logged_user= session.get("uname")        
+        if not logged_user:
+            print("No one is logged in")
+            session.clear()
+            return redirect('/login')
         else:
-            print("Wrong Action")
-    except: pass
+            ret_data = {}
+            try:                
+                cur=dbClient.cursor()         
+                cur.execute(f"select t_offset from {user_table_name} where user=%s",(logged_user,))
+                t_offset = cur.fetchone()[0]
+                today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
 
-    with open('config.json', 'w+') as file:
-        json.dump(config_data, file)  # Save updated data to file in JSON format
-    return redirect('/home.html')
-
-
-@page.route('/')
-@page.route('/home.html')
-def home():
-    today = datetime.datetime.today().astimezone(zi("Asia/Kolkata")).strftime(date_fmt)
-    try:
-        config_data = {}
-        with open('config.json', 'r') as file:
-            config_data = json.load(file)
-            nextDay=False
-            if t not in config_data or config_data[t] != today:
-                config_data[t]=today
-                config_data[tbd] = {}
-                if tdn not in config_data: config_data[tdn] = {}
-                nextDay=True
-            recalc(config_data, nextDay)
-    except:
-        config_data.update({tbd:{}, t:""})
-    with open('config.json', 'w+') as file:
-        json.dump(config_data, file)  # Save updated data to file in JSON format
-
-    response = {tbd:[], tdn:[]}
-    if tbd in config_data:
-        for x, y in config_data[tbd].items():
-            response[tbd].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))
-    if tdn in config_data:
-        for x, y in config_data[tdn].items():
-            response[tdn].append((y['subject'],x, y[timesDone], datetime.datetime.strftime(datetime.datetime.strptime(y[to_do],date_fmt), disp_date)))
-
-    response[tbd].sort()
-    response[tdn].sort()
-    return render_template('home.html', data=response)
+                cur.execute = cur.execute(f"select {subject}, {topic}, {times_done}, {do_on} from {topic_table_name} where user = %s order by {subject}, {times_done}",(logged_user,))
+                query_data = cur.fetchall()
+                for item in query_data:                    
+                    sub, top, td, do = item                    
+                    if sub in ret_data:
+                        ret_data[sub].append([top, do, td])
+                        ret_data[sub][0]+= int(do>today)
+                        ret_data[sub][1]+=1
+                    else:
+                        ret_data[sub] = [int(do>today),1,[top, do, td]]  
+            except Exception as e:
+                print("Failed to load Stats, ",e)                
+            return render_template("stats.html", data = ret_data)        
 
 
-date_fmt = "%Y-%m-%d"
-t = "today"
-tbd = "today-tbd"
-tdn = "today-done"
-topics = "topics"
-to_do = "todo"
-timesDone = "timesDone"
-disp_date = "%d %B, %Y"
+    @page.route('/add-topics',  methods=['GET', 'POST'])
+    def add_topics():
+        logged_user= session.get("uname")        
+        if not logged_user:
+            print("No one is logged in")
+            session.clear()
+            return redirect("/login")
+        elif request.method == "POST":        
+            try:       
+                cur=dbClient.cursor()         
+                cur.execute(f"select t_offset from {user_table_name} where user=%s",(logged_user,))
+                t_offset = cur.fetchone()[0]            
+                data = request.get_json()
+                server_data = []
+                for sub_top in data:
+                    d=(sub_top[topic], 
+                       sub_top[subject].capitalize(), 
+                       dt.combine(dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset), datetime.time.min), 
+                       dt.min,
+                       0, 
+                       logged_user)
+                    server_data.append(d)                
+                cur.executemany(f"insert into {topic_table_name}({topic}, {subject}, {do_on}, {last_done}, {times_done}, {user}) values(%s, %s, %s, %s, %s, %s)", server_data)
+                dbClient.commit()
+            except Exception as e:            
+                print("Error while adding Topics, ", e)
+            finally:
+                cur.close()
+            return render_template('add-topics.html', data= server_data)
+        return render_template('add-topics.html')
 
-def recalc(d, nextDay):
-    today= datetime.datetime.today().astimezone(zi("Asia/Kolkata")).date()
-    td={}
-    for x, y in d[topics].items():
-        pdate=datetime.datetime.strptime(y[to_do],date_fmt).astimezone(zi("Asia/Kolkata")).date()
-        if pdate<=today and x not in d[tdn]:
-            td[x] = y
 
-    d[tbd].update(td)
+    @page.route('/<action>/<id>', methods=['GET'])
+    def done(action, id):
+        logged_user= session.get("uname")        
+        if not logged_user:
+            print("No one is logged in")
+            session.clear()
+            return redirect('/login')
+        else:
+            try:
+                cur=dbClient.cursor()
+                cur.execute(f"select t_offset from {user_table_name} where user=%s",(logged_user,))
+                t_offset = cur.fetchone()[0]
+                today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
+                if action == "done":
+                    cur.execute(f"select {subject}, {topic}, {times_done}, {do_on}, {last_done} from {topic_table_name} where id=%s",(id,))
+                    ctopic = cur.fetchone()
+                    if not ctopic: RuntimeError("No result found for the query!")
+                    changes={}
+                    changes[last_done] = today
+                    changes[do_on] = today+datetime.timedelta(days=7*(1<<ctopic[2]))
+                    changes[times_done] = ctopic[2]+1
+                    change_keys = f"{last_done} = %s, {do_on} = %s, {times_done} = %s"
+                    change_values = (changes[last_done], changes[do_on], changes[times_done], id)
+                    print(change_values)
+                    cur.execute(f"update {topic_table_name} set {change_keys} where id=%s", change_values)
+                    dbClient.commit()
+                elif action == "undo":
+                    cur.execute(f"select {subject}, {topic}, {times_done}, {do_on}, {last_done} from {topic_table_name} where id=%s",(id,))
+                    ctopic = cur.fetchone()
+                    if not ctopic: RuntimeError("No result found for the query!")
+                    changes={}
+                    changes[last_done] = dt.min
+                    changes[times_done] = ctopic[2]-1
+                    changes[do_on] = today
+                    change_keys = f"{last_done} = %s, {do_on} = %s, {times_done} = %s"
+                    change_values = (changes[last_done], changes[do_on], changes[times_done], id)
+                    cur.execute(f"update {topic_table_name} set {change_keys} where id=%s", change_values)
+                    dbClient.commit()
+                else:
+                    print("Wrong action")
+            except Exception as e: 
+                print("Failed to perform the action, ",e)
+            finally:
+                cur.close()
+        return render_template('home.html')
 
-    if not nextDay: return
-    d[topics].update(d[tdn])
-    d[tdn].clear()
 
+    @page.route('/')
+    def home():        
+        logged_user= session.get("uname")        
+        if not logged_user:
+            print("No one is logged in")
+            session.clear()
+        else:
+            print(logged_user, "is logged in")
+            try:
+                cur=dbClient.cursor()
+                cur.execute("select t_offset from "+user_table_name+" where user=%s",(logged_user,))
+                t_offset = cur.fetchone()[0]
+            except Exception as e:
+                print("Timezone offset not foound , ",e)
+                t_offset = 0
+            finally:
+                cur.close()
+
+            today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
+            resp_data = {today_tbd : [], today_done : []}            
+
+            try:            
+                cur=dbClient.cursor()
+                cur.execute = cur.execute(f"select {subject}, {topic}, {times_done}, {do_on}, id from {topic_table_name} where user = %s and do_on <= %s order by {subject}, {do_on}",(logged_user, today))
+                query_res1 = cur.fetchall()                
+                for x in query_res1:
+                    c = (x[0], x[1], x[2], dt.strftime(x[3], disp_date), x[4])
+                    resp_data[today_tbd].append(c)
+            except Exception as e:
+                print("Error in fetching todo data, ",e)
+            finally:
+                cur.close()
+
+            try:
+                cur=dbClient.cursor()
+                cur.execute = cur.execute(f"select {subject}, {topic}, {times_done}, {do_on}, id from {topic_table_name} where user = %s and last_done = %s order by {subject}, {do_on}",(logged_user, today))
+                query_res2 = cur.fetchall()                                
+                for x in query_res2:
+                    c = (x[0], x[1], x[2], dt.strftime(x[3], disp_date), x[4])
+                    resp_data[today_done].append(c)     
+            except Exception as e:
+                print("Error in fetching done data, ",e)
+            finally:
+                cur.close()
+            return render_template('home.html', data=resp_data)
+        return render_template('home.html', data = None)
+        
+
+    @page.route('/header')
+    def header():
+        logged_user= session.get("uname")
+        data = {"uname": logged_user}
+        return render_template('header.html', data=data)
+    
+    @page.route('/logout')
+    def logout():        
+        session.clear()
+        return redirect("/")
+    
+    return page
