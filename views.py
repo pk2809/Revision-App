@@ -5,7 +5,8 @@ import datetime
 from datetime import datetime as dt
 from zoneinfo import ZoneInfo as zi
 
-def constructBlueprint(dbClient: CMySQLConnection):    
+def constructBlueprint(dbClient: CMySQLConnection):   
+    db_name = "revision_app"
     user_table_name = "users"
     topic_table_name = "topics"
     topic = "topic"
@@ -23,6 +24,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
 
     @page.route('/login', methods = ["GET", "POST"])
     def login():        
+        checkConnection()
         logged_user= session.get("uname")                
         if logged_user:
             return redirect("/")
@@ -53,6 +55,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
     
     @page.route('/register', methods = ["GET", "POST"])
     def register():
+        checkConnection()
         logged_user= session.get("uname")                
         if logged_user:
             return redirect("/")
@@ -82,6 +85,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
 
     @page.route('/stats', methods=['GET'])
     def stats():
+        checkConnection()
         logged_user= session.get("uname")        
         if not logged_user:
             print("No one is logged in")
@@ -93,7 +97,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
                 cur=dbClient.cursor()         
                 cur.execute(f"select t_offset from {user_table_name} where user=%s",(logged_user,))
                 t_offset = cur.fetchone()[0]
-                today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
+                today = (dt.now(datetime.timezone.utc)-datetime.timedelta(minutes=t_offset)).date()
 
                 cur.execute = cur.execute(f"select {subject}, {topic}, {times_done}, {do_on} from {topic_table_name} where user = %s order by {subject}, {times_done}",(logged_user,))
                 query_data = cur.fetchall()
@@ -112,6 +116,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
 
     @page.route('/add-topics',  methods=['GET', 'POST'])
     def add_topics():
+        checkConnection()
         logged_user= session.get("uname")        
         if not logged_user:
             print("No one is logged in")
@@ -127,7 +132,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
                 for sub_top in data:
                     d=(sub_top[topic], 
                        sub_top[subject].capitalize(), 
-                       dt.combine(dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset), datetime.time.min), 
+                       dt.combine(dt.now(datetime.timezone.utc)-datetime.timedelta(minutes=t_offset), datetime.time.min), 
                        dt.min,
                        0, 
                        logged_user)
@@ -144,6 +149,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
 
     @page.route('/<action>/<id>', methods=['GET'])
     def done(action, id):
+        checkConnection()
         logged_user= session.get("uname")        
         if not logged_user:
             print("No one is logged in")
@@ -154,7 +160,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
                 cur=dbClient.cursor()
                 cur.execute(f"select t_offset from {user_table_name} where user=%s",(logged_user,))
                 t_offset = cur.fetchone()[0]
-                today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
+                today = (dt.now(datetime.timezone.utc)-datetime.timedelta(minutes=t_offset)).date()
                 if action == "done":
                     cur.execute(f"select {subject}, {topic}, {times_done}, {do_on}, {last_done} from {topic_table_name} where id=%s",(id,))
                     ctopic = cur.fetchone()
@@ -191,6 +197,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
 
     @page.route('/')
     def home():        
+        checkConnection()
         logged_user= session.get("uname")        
         if not logged_user:
             print("No one is logged in")
@@ -207,7 +214,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
             finally:
                 cur.close()
 
-            today = (dt.now(datetime.UTC)-datetime.timedelta(minutes=t_offset)).date()
+            today = (dt.now(datetime.timezone.utc)-datetime.timedelta(minutes=t_offset)).date()
             resp_data = {today_tbd : [], today_done : []}            
 
             try:            
@@ -238,7 +245,7 @@ def constructBlueprint(dbClient: CMySQLConnection):
         
 
     @page.route('/header')
-    def header():
+    def header():        
         logged_user= session.get("uname")
         data = {"uname": logged_user}
         return render_template('header.html', data=data)
@@ -248,4 +255,9 @@ def constructBlueprint(dbClient: CMySQLConnection):
         session.clear()
         return redirect("/")
     
-    return page
+    def checkConnection():
+        if not dbClient.is_connected():
+            print("Re-establishing connection")
+            dbClient.connect(database = db_name)
+            
+    return page    
