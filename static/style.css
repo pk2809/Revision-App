@@ -118,6 +118,10 @@ thead{
     overflow-y: scroll;
 }
 
+.stats-div * {
+    -webkit-tap-highlight-color:transparent;    
+}
+
 .node, .nested{
     list-style-type: none;
 }
